@@ -4,6 +4,13 @@ const path = require("path");
 const sqlite3 = require("sqlite3").verbose();  // if using SQLite
 const cron = require("node-cron");
 const nodemailer = require("nodemailer");
+const { Configuration, OpenAIApi } = require("openai");
+
+// Set up the OpenAI configuration using your API key
+const configuration = new Configuration({
+    apiKey: process.env.OPENAI_API_KEY,
+  });
+  const openai = new OpenAIApi(configuration);
 
 const app = express();
 app.use(bodyParser.json());
@@ -110,6 +117,88 @@ function sendReminder(ticket) {
     else console.log("Reminder sent:", info.response);
   });
 }
+
+// --------------------
+// /api/ai-process Endpoint
+// --------------------
+app.post("/api/ai-process", async (req, res) => {
+    try {
+      const { description, email, phone } = req.body;
+      
+      // Build a prompt that instructs the AI to condense the ticket and generate an in-progress update
+      const prompt = `
+  You are an AI assistant that condenses a ticket description and extracts any contact information, then creates an "in-progress" email subject and message for follow-up.
+  
+  Ticket Description: ${description}
+  Contact Email: ${email || "None"}
+  Contact Phone: ${phone || "None"}
+  
+  Provide the output in JSON format with these keys:
+  - "condensed": A condensed summary of the ticket that prioritizes contact information.
+  - "inProgressSubject": A suggested subject line for an in-progress update.
+  - "inProgressText": A suggested message text for an in-progress update.
+  
+  Return only the JSON.
+      `;
+      
+      // Call OpenAI's API (using text-davinci-003 in this example)
+      const completion = await openai.createCompletion({
+        model: "text-davinci-003",
+        prompt: prompt,
+        max_tokens: 150,
+        temperature: 0.7,
+      });
+      
+      // Get the response text from OpenAI
+      const responseText = completion.data.choices[0].text;
+      
+      // Try to parse the JSON response
+      let aiData;
+      try {
+        aiData = JSON.parse(responseText);
+      } catch (err) {
+        console.error("Error parsing AI response:", err);
+        // Fallback values if parsing fails
+        aiData = {
+          condensed: "Condensed summary unavailable.",
+          inProgressSubject: "Ticket In-Progress",
+          inProgressText: "We are working on your ticket.",
+        };
+      }
+      
+      res.json(aiData);
+    } catch (error) {
+      console.error("Error in /api/ai-process:", error);
+      res.status(500).json({ error: "Failed to process AI request" });
+    }
+  });
+  
+  // --------------------
+  // /api/send-email Endpoint
+  // --------------------
+  app.post("/api/send-email", async (req, res) => {
+    try {
+      const { to, subject, text } = req.body;
+      const mailOptions = {
+        from: process.env.EMAIL_USER || "your.email@gmail.com",
+        to: to, // recipient email address
+        subject: subject,
+        text: text,
+      };
+  
+      transporter.sendMail(mailOptions, (error, info) => {
+        if (error) {
+          console.error("Error sending email:", error);
+          return res.status(500).json({ error: "Failed to send email" });
+        } else {
+          res.json({ success: true, info: info.response });
+        }
+      });
+    } catch (error) {
+      console.error("Error in /api/send-email:", error);
+      res.status(500).json({ error: "Failed to send email" });
+    }
+  });
 
 // Listen on the port provided by Heroku
 const PORT = process.env.PORT || 3000;
