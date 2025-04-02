@@ -8,10 +8,14 @@ import { Configuration, OpenAIApi } from "openai";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
 
+// Define __filename and __dirname for ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 const configuration = new Configuration({
-    apiKey: process.env.OPENAI_API_KEY,
-  });
-  const openai = new OpenAIApi(configuration);
+  apiKey: process.env.OPENAI_API_KEY,
+});
+const openai = new OpenAIApi(configuration);
 
 const app = express();
 app.use(bodyParser.json());
