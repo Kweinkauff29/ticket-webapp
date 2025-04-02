@@ -140,7 +140,7 @@ function sendReminder(ticket) {
     if (error) console.error("Error sending reminder:", error);
     else console.log("Reminder sent:", info.response);
   });
-});
+}
 
 // --------------------
 // /api/ai-process Endpoint - Commented out for now
