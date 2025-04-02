@@ -13,7 +13,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const configuration = new Configuration({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: "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",
 });
 const openai = new OpenAIApi(configuration);
 
