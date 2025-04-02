@@ -1,14 +1,14 @@
 {
   "name": "ticket-webapp",
   "version": "1.0.0",
-  "description": "",
+  "description": "A simple ticket web application with AI integration",
   "type": "module",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
   "keywords": [],
-  "author": "",
+  "author": "Your Name",
   "license": "ISC",
   "dependencies": {
     "express": "^4.18.2",
