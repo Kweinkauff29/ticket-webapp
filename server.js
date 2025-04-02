@@ -1,12 +1,11 @@
 import express from "express";
 import bodyParser from "body-parser";
 import path from "path";
-import pkg from "pg"; // Import default export from pg
+import pkg from "pg"; // Import the default export from pg
 const { Pool } = pkg;
 import cron from "node-cron";
 import nodemailer from "nodemailer";
-// Instead of named imports, import the default export from "openai"
-import OpenAI from "openai";
+import { Configuration, OpenAIApi } from "openai";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
 
@@ -23,9 +22,7 @@ app.use(express.static(path.join(__dirname, "public")));
 // Initialize Heroku PostgreSQL connection pool using DATABASE_URL
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false,
-  },
+  ssl: { rejectUnauthorized: false },
 });
 
 // Create the tickets table if it doesn't exist
@@ -81,7 +78,7 @@ app.post("/api/create-ticket", async (req, res) => {
   }
 });
 
-// New GET endpoint to retrieve all tickets
+// GET endpoint to retrieve all tickets
 app.get("/api/tickets", async (req, res) => {
   try {
     const result = await pool.query(
@@ -145,13 +142,13 @@ function sendReminder(ticket) {
   });
 }
 
-// Create a new instance of the OpenAI client using the new syntax.
-// Note: Use your environment variable here.
-const openai = new OpenAI({
+// Initialize OpenAI using Configuration and OpenAIApi
+const configuration = new Configuration({
   apiKey: process.env.OPENAI_API_KEY,
 });
+const openai = new OpenAIApi(configuration);
 
-// /api/ai-process Endpoint using the new OpenAI client
+// /api/ai-process Endpoint
 app.post("/api/ai-process", async (req, res) => {
   try {
     const { description, email, phone, noAI } = req.body;
@@ -181,18 +178,17 @@ Provide the output in JSON format with these keys:
 Return only the JSON.
     `;
 
-    // Call OpenAI's chat completions API using the new client
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini", // using the model from your snippet
-      store: true,
+    // Call OpenAI's chat completions API
+    const completion = await openai.createChatCompletion({
+      model: "gpt-4", // Adjust the model name as needed
       messages: [{ role: "user", content: prompt }],
       max_tokens: 150,
       temperature: 0.7,
     });
 
     // Get the response text from OpenAI
-    const responseText = completion.choices[0].message;
-    
+    const responseText = completion.data.choices[0].message.content;
+
     // Try to parse the JSON response
     let aiData;
     try {
