@@ -1,0 +1,27 @@
+> git push origin main:main
+remote: error: GH013: Repository rule violations found for refs/heads/main.        
+remote: 
+remote: - GITHUB PUSH PROTECTION        
+remote:   —————————————————————————————————————————        
+remote:     Resolve the following violations before pushing again        
+remote: 
+remote:     - Push cannot contain secrets        
+remote: 
+remote:             
+remote:      (?) Learn how to resolve a blocked push        
+remote:      https://docs.github.com/code-security/secret-scanning/working-with-secret-scanning-and-push-protection/working-with-push-protection-from-the-command-line#resolving-a-blocked-push        
+remote:             
+remote:             
+remote:       —— OpenAI API Key ————————————————————————————————————        
+remote:        locations:        
+remote:          - commit: c94b3b4615fbea67a5fd8942863183ea020d8e99        
+remote:            path: .env:1        
+remote:             
+remote:        (?) To push, remove secret from commit(s) or follow this URL to allow the secret.        
+remote:        https://github.com/Kweinkauff29/ticket-webapp/security/secret-scanning/unblock-secret/2vBMW8skmCFjvAWuMHYSXViJDyi        
+remote:             
+remote: 
+remote: 
+To https://github.com/Kweinkauff29/ticket-webapp.git
+ ! [remote rejected] main -> main (push declined due to repository rule violations)
+error: failed to push some refs to 'https://github.com/Kweinkauff29/ticket-webapp.git'
