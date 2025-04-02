@@ -13,8 +13,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const configuration = new Configuration({
-  apiKey: "process.env.OPENAI_API_KEY",
-});
+    apiKey: process.env.OPENAI_API_KEY,
+  });
 const openai = new OpenAIApi(configuration);
 
 const app = express();
