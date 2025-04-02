@@ -116,7 +116,7 @@
       margin-top: 3px;
       color: #555;
     }
-    /* Modal popup styles */
+    /* Modal popup styles (for AI) */
     .modal {
       display: none;
       position: fixed;
@@ -209,7 +209,8 @@
     </div>
   </div>
 
-  <!-- AI Modal Popup -->
+  <!-- AI Modal Popup (OpenAI integration is disabled) -->
+  <!--
   <div id="aiPopup" class="modal">
     <div class="modal-content">
       <h2>AI Ticket Summary</h2>
@@ -219,6 +220,7 @@
       <button id="aiCancelBtn">Cancel</button>
     </div>
   </div>
+  -->
 
   <script>
     // Wait for the DOM to load
@@ -242,7 +244,8 @@
         const ticket = await createResponse.json();
         console.log("Ticket created:", ticket);
         
-        // If the "Don't use AI" checkbox is NOT checked, process the ticket with AI
+        // --- OpenAI processing is disabled ---
+        /*
         if (!skipAI) {
           try {
             const aiResponse = await fetch("/api/ai-process", {
@@ -265,8 +268,15 @@
         } else {
           console.log("Ticket created without AI processing.");
         }
+        */
+        
+        // Add ticket to UI directly
+        addTicketToUI(ticket, "Kevin");
+        ticketForm.reset();
       });
       
+      // --- AI Modal handlers are disabled ---
+      /*
       // Close modal when Cancel is clicked
       document.getElementById("aiCancelBtn").addEventListener("click", function() {
         document.getElementById("aiPopup").style.display = "none";
@@ -277,6 +287,7 @@
         document.getElementById("aiPopup").style.display = "none";
         console.log("AI summary confirmed.");
       });
+      */
       
       // Functions for collapsible boxes and drag/drop
       window.toggleBox = function(headerElement) {
@@ -296,6 +307,59 @@
         console.log("Dropped on", person);
       };
     });
+    
+    // Adds a ticket element to the specified assignee box; also stores the assignee in a data attribute
+    function addTicketToUI(ticket, assignee) {
+      const ticketElem = document.createElement("div");
+      ticketElem.className = "ticket";
+      ticketElem.id = "ticket-" + ticket.id;
+      ticketElem.draggable = true;
+      ticketElem.dataset.assignee = assignee;
+      ticketElem.addEventListener("dragstart", drag);
+      
+      ticketElem.innerHTML = `
+        <div class="details">
+          <strong>${ticket.ticketNumber}:</strong> ${ticket.summary}<br>
+          ${ticket.email ? `<small>Email: ${ticket.email}</small>` : ""}
+          ${ticket.phone ? `<small>Phone: ${ticket.phone}</small>` : ""}
+          <small>(Due: ${new Date(ticket.reminderTime).toLocaleString()})</small>
+        </div>
+        <div>
+          <input type="checkbox" onchange="toggleCompleted(event, ${ticket.id})">
+        </div>
+      `;
+      
+      // Append to the box for the given assignee
+      const selector = `.person-box[data-person="${assignee}"] .ticket-list`;
+      const container = document.querySelector(selector);
+      if (container) {
+        container.appendChild(ticketElem);
+      }
+    }
+    
+    // Toggle completion state:
+    async function toggleCompleted(event, ticketId) {
+      const checkbox = event.target;
+      const ticketElem = document.getElementById("ticket-" + ticketId);
+      if (checkbox.checked) {
+        await fetch(`/api/complete-ticket/${ticketId}`, { method: "POST" });
+        ticketElem.classList.add("completed");
+        document.getElementById("completedTicketList").appendChild(ticketElem);
+      } else {
+        ticketElem.classList.remove("completed");
+        const lastAssignee = ticketElem.dataset.assignee || "Kevin";
+        const selector = `.person-box[data-person="${lastAssignee}"] .ticket-list`;
+        const container = document.querySelector(selector);
+        if (container) {
+          container.appendChild(ticketElem);
+        }
+      }
+    }
+    
+    // HTML5 Drag and Drop handlers
+    function drag(event) {
+      event.dataTransfer.setData("text/plain", event.target.id);
+    }
   </script>
   <script src="main.js"></script>
 </body>
