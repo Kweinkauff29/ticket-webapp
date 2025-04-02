@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Ticket Webapp</title>
+  <style>
+    body { font-family: sans-serif; }
+    .ticket { margin-bottom: 10px; }
+    .completed { text-decoration: line-through; }
+  </style>
+</head>
+<body>
+  <h1>Create a Ticket</h1>
+  <form id="ticketForm">
+    <textarea id="ticketDescription" placeholder="Describe your task here" required></textarea><br>
+    <button type="submit">Create Ticket</button>
+  </form>
+
+  <h2>Active Tickets</h2>
+  <ul id="ticketList"></ul>
+
+  <h2>Completed Tickets</h2>
+  <ul id="completedTicketList"></ul>
+
+  <script src="main.js"></script>
+</body>
+</html>
