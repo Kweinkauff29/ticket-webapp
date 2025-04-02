@@ -159,7 +159,13 @@
 
         <label for="ticketPhone">Phone (Optional):</label>
         <input type="tel" id="ticketPhone" placeholder="Enter your phone number">
-
+        
+        <!-- New Checkbox to choose skipping AI -->
+        <label>
+          <input type="checkbox" id="skip-ai" name="skipAI">
+          Don't use AI (skip AI processing)
+        </label>
+        
         <button type="submit">Create Ticket</button>
       </form>
     </div>
@@ -214,6 +220,83 @@
     </div>
   </div>
 
+  <script>
+    // Wait for the DOM to load
+    document.addEventListener("DOMContentLoaded", function() {
+      const ticketForm = document.getElementById("ticketForm");
+      
+      ticketForm.addEventListener("submit", async function(e) {
+        e.preventDefault();
+        
+        const description = document.getElementById("ticketDescription").value;
+        const email = document.getElementById("ticketEmail").value;
+        const phone = document.getElementById("ticketPhone").value;
+        const skipAI = document.getElementById("skip-ai").checked;
+        
+        // Create ticket
+        const createResponse = await fetch("/api/create-ticket", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ description, email, phone })
+        });
+        const ticket = await createResponse.json();
+        console.log("Ticket created:", ticket);
+        
+        // If the "Don't use AI" checkbox is NOT checked, process the ticket with AI
+        if (!skipAI) {
+          try {
+            const aiResponse = await fetch("/api/ai-process", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ description, email, phone })
+            });
+            if (aiResponse.ok) {
+              const aiData = await aiResponse.json();
+              // Show the modal popup with AI data
+              document.getElementById("aiCondensed").innerText = "Condensed: " + aiData.condensed;
+              document.getElementById("aiInProgress").innerText = "In Progress: " + aiData.inProgressSubject + " - " + aiData.inProgressText;
+              document.getElementById("aiPopup").style.display = "block";
+            } else {
+              console.error("AI processing failed with status:", aiResponse.status);
+            }
+          } catch (error) {
+            console.error("Error processing AI:", error);
+          }
+        } else {
+          console.log("Ticket created without AI processing.");
+        }
+      });
+      
+      // Close modal when Cancel is clicked
+      document.getElementById("aiCancelBtn").addEventListener("click", function() {
+        document.getElementById("aiPopup").style.display = "none";
+      });
+      
+      // Confirmation button logic (customize as needed)
+      document.getElementById("aiConfirmBtn").addEventListener("click", function() {
+        document.getElementById("aiPopup").style.display = "none";
+        console.log("AI summary confirmed.");
+      });
+      
+      // Functions for collapsible boxes and drag/drop
+      window.toggleBox = function(headerElement) {
+        const ticketList = headerElement.nextElementSibling;
+        ticketList.style.display = (ticketList.style.display === "none" ? "block" : "none");
+      };
+      
+      window.allowDrop = function(event) {
+        event.preventDefault();
+        event.currentTarget.classList.add("drag-over");
+      };
+      
+      window.drop = function(event, person) {
+        event.preventDefault();
+        event.currentTarget.classList.remove("drag-over");
+        // Implement your drop logic here
+        console.log("Dropped on", person);
+      };
+    });
+  </script>
   <script src="main.js"></script>
 </body>
 </html>

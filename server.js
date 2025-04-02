@@ -13,8 +13,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const configuration = new Configuration({
-    apiKey: process.env.OPENAI_API_KEY,
-  });
+  apiKey: process.env.OPENAI_API_KEY,
+});
 const openai = new OpenAIApi(configuration);
 
 const app = express();
@@ -23,10 +23,10 @@ app.use(bodyParser.json());
 // Serve static files from the public folder
 app.use(express.static(path.join(__dirname, "public")));
 
-// Initialize your database (or use another method)
-const db = new sqlite3.Database(":memory:");
+// Initialize your database using a file for persistence
+const db = new sqlite3.Database("tickets.db");
 db.serialize(() => {
-  db.run(`CREATE TABLE tickets (
+  db.run(`CREATE TABLE IF NOT EXISTS tickets (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     description TEXT,
     summary TEXT,
@@ -46,34 +46,37 @@ function generateTicketNumber() {
   return "TICKET-" + Date.now();
 }
 
+// Endpoint to create a ticket
 app.post("/api/create-ticket", (req, res) => {
-    const { description, email, phone } = req.body; // Capture additional fields
-    const summary = summarizeText(description);
-    const ticketNumber = generateTicketNumber();
-    const createdAt = Date.now();
-    const reminderTime = createdAt + 2 * 24 * 60 * 60 * 1000; // 2 days later
-  
-    const stmt = db.prepare(`INSERT INTO tickets (description, summary, ticketNumber, createdAt, reminderTime)
-                               VALUES (?, ?, ?, ?, ?)`);
-    stmt.run(description, summary, ticketNumber, createdAt, reminderTime, function (err) {
-      if (err) return res.status(500).json({ error: "Database error" });
-      // Include email and phone in the returned object if needed.
-      res.json({
-        id: this.lastID,
-        description,
-        summary,
-        ticketNumber,
-        createdAt,
-        reminderTime,
-        completed: 0,
-        email,   // optional field
-        phone    // optional field
-      });
-    });
-    stmt.finalize();
-  });
+  const { description, email, phone, noAI } = req.body; // Capture additional fields including the noAI flag
+  const summary = summarizeText(description);
+  const ticketNumber = generateTicketNumber();
+  const createdAt = Date.now();
+  const reminderTime = createdAt + 2 * 24 * 60 * 60 * 1000; // 2 days later
 
-// API endpoint to mark a ticket as completed
+  const stmt = db.prepare(
+    `INSERT INTO tickets (description, summary, ticketNumber, createdAt, reminderTime)
+     VALUES (?, ?, ?, ?, ?)`
+  );
+  stmt.run(description, summary, ticketNumber, createdAt, reminderTime, function (err) {
+    if (err) return res.status(500).json({ error: "Database error" });
+    res.json({
+      id: this.lastID,
+      description,
+      summary,
+      ticketNumber,
+      createdAt,
+      reminderTime,
+      completed: 0,
+      email,   // optional field
+      phone,   // optional field,
+      noAI     // return the flag if needed
+    });
+  });
+  stmt.finalize();
+});
+
+// Endpoint to mark a ticket as completed
 app.post("/api/complete-ticket/:id", (req, res) => {
   const ticketId = req.params.id;
   db.run(`UPDATE tickets SET completed = 1 WHERE id = ?`, ticketId, function (err) {
@@ -82,25 +85,21 @@ app.post("/api/complete-ticket/:id", (req, res) => {
   });
 });
 
-// Example cron job for sending email reminders (customize as needed)
+// Cron job for sending email reminders
 cron.schedule("0 * * * *", () => {
   const now = Date.now();
-  db.all(
-    `SELECT * FROM tickets WHERE completed = 0 AND reminderTime <= ?`,
-    now,
-    (err, rows) => {
-      if (err) {
-        console.error("Error checking tickets:", err);
-        return;
-      }
-      rows.forEach(ticket => {
-        sendReminder(ticket);
-      });
+  db.all(`SELECT * FROM tickets WHERE completed = 0 AND reminderTime <= ?`, now, (err, rows) => {
+    if (err) {
+      console.error("Error checking tickets:", err);
+      return;
     }
-  );
+    rows.forEach(ticket => {
+      sendReminder(ticket);
+    });
+  });
 });
 
-// Set up nodemailer (update with your email credentials)
+// Set up nodemailer
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
@@ -127,84 +126,92 @@ function sendReminder(ticket) {
 // /api/ai-process Endpoint
 // --------------------
 app.post("/api/ai-process", async (req, res) => {
-    try {
-      const { description, email, phone } = req.body;
-      
-      // Build a prompt that instructs the AI to condense the ticket and generate an in-progress update
-      const prompt = `
-  You are an AI assistant that condenses a ticket description and extracts any contact information, then creates an "in-progress" email subject and message for follow-up.
-  
-  Ticket Description: ${description}
-  Contact Email: ${email || "None"}
-  Contact Phone: ${phone || "None"}
-  
-  Provide the output in JSON format with these keys:
-  - "condensed": A condensed summary of the ticket that prioritizes contact information.
-  - "inProgressSubject": A suggested subject line for an in-progress update.
-  - "inProgressText": A suggested message text for an in-progress update.
-  
-  Return only the JSON.
-      `;
-      
-      // Call OpenAI's API (using text-davinci-003 in this example)
-      const completion = await openai.createChatCompletion({
-        model: "gpt-4",
-        messages: [{ role: "user", content: prompt }],
-        max_tokens: 150,
-        temperature: 0.7,
+  try {
+    const { description, email, phone, noAI } = req.body;
+
+    // If noAI flag is true, bypass AI processing and return default values
+    if (noAI) {
+      return res.json({
+        condensed: "AI processing skipped.",
+        inProgressSubject: "Ticket In-Progress",
+        inProgressText: "Please update your ticket manually."
       });
-      
-      
-      // Get the response text from OpenAI
-      const responseText = completion.data.choices[0].text;
-      
-      // Try to parse the JSON response
-      let aiData;
-      try {
-        aiData = JSON.parse(responseText);
-      } catch (err) {
-        console.error("Error parsing AI response:", err);
-        // Fallback values if parsing fails
-        aiData = {
-          condensed: "Condensed summary unavailable.",
-          inProgressSubject: "Ticket In-Progress",
-          inProgressText: "We are working on your ticket.",
-        };
-      }
-      
-      res.json(aiData);
-    } catch (error) {
-      console.error("Error in /api/ai-process:", error);
-      res.status(500).json({ error: "Failed to process AI request" });
     }
-  });
-  
-  // --------------------
-  // /api/send-email Endpoint
-  // --------------------
-  app.post("/api/send-email", async (req, res) => {
+    
+    // Build a prompt for the AI
+    const prompt = `
+You are an AI assistant that condenses a ticket description and extracts any contact information, then creates an "in-progress" email subject and message for follow-up.
+
+Ticket Description: ${description}
+Contact Email: ${email || "None"}
+Contact Phone: ${phone || "None"}
+
+Provide the output in JSON format with these keys:
+- "condensed": A condensed summary of the ticket that prioritizes contact information.
+- "inProgressSubject": A suggested subject line for an in-progress update.
+- "inProgressText": A suggested message text for an in-progress update.
+
+Return only the JSON.
+    `;
+
+    // Call OpenAI's API using Chat Completion (GPT-4)
+    const completion = await openai.createChatCompletion({
+      model: "gpt-4",
+      messages: [{ role: "user", content: prompt }],
+      max_tokens: 150,
+      temperature: 0.7,
+    });
+
+    // Get the response text from OpenAI
+    const responseText = completion.data.choices[0].message.content;
+    
+    // Try to parse the JSON response
+    let aiData;
     try {
-      const { to, subject, text } = req.body;
-      const mailOptions = {
-        from: process.env.EMAIL_USER || "your.email@gmail.com",
-        to: to, // recipient email address
-        subject: subject,
-        text: text,
+      aiData = JSON.parse(responseText);
+    } catch (err) {
+      console.error("Error parsing AI response:", err);
+      // Fallback values if parsing fails
+      aiData = {
+        condensed: "Condensed summary unavailable.",
+        inProgressSubject: "Ticket In-Progress",
+        inProgressText: "We are working on your ticket.",
       };
-  
-      transporter.sendMail(mailOptions, (error, info) => {
-        if (error) {
-          console.error("Error sending email:", error);
-          return res.status(500).json({ error: "Failed to send email" });
-        } else {
-          res.json({ success: true, info: info.response });
-        }
-      });
-    } catch (error) {
-      console.error("Error in /api/send-email:", error);
-      res.status(500).json({ error: "Failed to send email" });
     }
-  });
+    
+    res.json(aiData);
+  } catch (error) {
+    console.error("Error in /api/ai-process:", error);
+    res.status(500).json({ error: "Failed to process AI request" });
+  }
+});
+
+// --------------------
+// /api/send-email Endpoint
+// --------------------
+app.post("/api/send-email", async (req, res) => {
+  try {
+    const { to, subject, text } = req.body;
+    const mailOptions = {
+      from: process.env.EMAIL_USER || "your.email@gmail.com",
+      to: to, // recipient email address
+      subject: subject,
+      text: text,
+    };
+
+    transporter.sendMail(mailOptions, (error, info) => {
+      if (error) {
+        console.error("Error sending email:", error);
+        return res.status(500).json({ error: "Failed to send email" });
+      } else {
+        res.json({ success: true, info: info.response });
+      }
+    });
+  } catch (error) {
+    console.error("Error in /api/send-email:", error);
+    res.status(500).json({ error: "Failed to send email" });
+  }
+});
 
 // Listen on the port provided by Heroku
 const PORT = process.env.PORT || 3000;
