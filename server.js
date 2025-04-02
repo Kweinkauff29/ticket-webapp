@@ -147,12 +147,13 @@ app.post("/api/ai-process", async (req, res) => {
       `;
       
       // Call OpenAI's API (using text-davinci-003 in this example)
-      const completion = await openai.createCompletion({
-        model: "text-davinci-003",
-        prompt: prompt,
+      const completion = await openai.createChatCompletion({
+        model: "gpt-4",
+        messages: [{ role: "user", content: prompt }],
         max_tokens: 150,
         temperature: 0.7,
       });
+      
       
       // Get the response text from OpenAI
       const responseText = completion.data.choices[0].text;
