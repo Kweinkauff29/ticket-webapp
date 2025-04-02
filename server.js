@@ -5,7 +5,8 @@ import pkg from "pg"; // Import the default export from pg
 const { Pool } = pkg;
 import cron from "node-cron";
 import nodemailer from "nodemailer";
-// import { Configuration, OpenAIApi } from "openai";  // <-- AI functionality commented out
+// Comment out AI-related code if not needed:
+// import { Configuration, OpenAIApi } from "openai";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
 
@@ -21,7 +22,7 @@ app.use(express.static(path.join(__dirname, "public")));
 
 // Initialize Heroku PostgreSQL connection pool using DATABASE_URL
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString: process.env.DATABASE_URL + "?sslmode=require",
   ssl: { rejectUnauthorized: false },
 });
 
@@ -81,9 +82,7 @@ app.post("/api/create-ticket", async (req, res) => {
 // GET endpoint to retrieve all tickets
 app.get("/api/tickets", async (req, res) => {
   try {
-    const result = await pool.query(
-      `SELECT * FROM tickets ORDER BY createdAt DESC`
-    );
+    const result = await pool.query(`SELECT * FROM tickets ORDER BY createdAt DESC`);
     res.json(result.rows);
   } catch (err) {
     console.error("Database error:", err);
@@ -107,10 +106,7 @@ app.post("/api/complete-ticket/:id", async (req, res) => {
 cron.schedule("0 * * * *", async () => {
   const now = Date.now();
   try {
-    const { rows } = await pool.query(
-      `SELECT * FROM tickets WHERE completed = 0 AND reminderTime <= $1`,
-      [now]
-    );
+    const { rows } = await pool.query(`SELECT * FROM tickets WHERE completed = 0 AND reminderTime <= $1`, [now]);
     rows.forEach((ticket) => {
       sendReminder(ticket);
     });
@@ -142,80 +138,17 @@ function sendReminder(ticket) {
   });
 }
 
-/* 
-// AI functionality is commented out below
+/*
+// Commented out AI processing functionality
+// const configuration = new Configuration({ apiKey: process.env.OPENAI_API_KEY });
+// const openai = new OpenAIApi(configuration);
 
-// Initialize OpenAI using Configuration and OpenAIApi
-const configuration = new Configuration({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-const openai = new OpenAIApi(configuration);
-
-// /api/ai-process Endpoint
-app.post("/api/ai-process", async (req, res) => {
-  try {
-    const { description, email, phone, noAI } = req.body;
-
-    // If noAI flag is true, bypass AI processing and return default values
-    if (noAI) {
-      return res.json({
-        condensed: "AI processing skipped.",
-        inProgressSubject: "Ticket In-Progress",
-        inProgressText: "Please update your ticket manually.",
-      });
-    }
-
-    // Build a prompt for the AI
-    const prompt = `
-You are an AI assistant that condenses a ticket description and extracts any contact information, then creates an "in-progress" email subject and message for follow-up.
-
-Ticket Description: ${description}
-Contact Email: ${email || "None"}
-Contact Phone: ${phone || "None"}
-
-Provide the output in JSON format with these keys:
-- "condensed": A condensed summary of the ticket that prioritizes contact information.
-- "inProgressSubject": A suggested subject line for an in-progress update.
-- "inProgressText": A suggested message text for an in-progress update.
-
-Return only the JSON.
-    `;
-
-    // Call OpenAI's chat completions API
-    const completion = await openai.createChatCompletion({
-      model: "gpt-4",
-      messages: [{ role: "user", content: prompt }],
-      max_tokens: 150,
-      temperature: 0.7,
-    });
-
-    // Get the response text from OpenAI
-    const responseText = completion.data.choices[0].message.content;
-
-    // Try to parse the JSON response
-    let aiData;
-    try {
-      aiData = JSON.parse(responseText);
-    } catch (err) {
-      console.error("Error parsing AI response:", err);
-      // Fallback values if parsing fails
-      aiData = {
-        condensed: "Condensed summary unavailable.",
-        inProgressSubject: "Ticket In-Progress",
-        inProgressText: "We are working on your ticket.",
-      };
-    }
-
-    res.json(aiData);
-  } catch (error) {
-    console.error("Error in /api/ai-process:", error);
-    res.status(500).json({ error: "Failed to process AI request" });
-  }
-});
+// app.post("/api/ai-process", async (req, res) => {
+//   // AI processing code here...
+// });
 */
 
-/*
-// /api/send-email Endpoint (remains unchanged)
+// /api/send-email Endpoint
 app.post("/api/send-email", async (req, res) => {
   try {
     const { to, subject, text } = req.body;
@@ -228,7 +161,7 @@ app.post("/api/send-email", async (req, res) => {
 
     transporter.sendMail(mailOptions, (error, info) => {
       if (error) {
-        console.error("Error sending email:", error);
+//         console.error("Error sending email:", error);
         return res.status(500).json({ error: "Failed to send email" });
       } else {
         res.json({ success: true, info: info.response });
@@ -239,7 +172,6 @@ app.post("/api/send-email", async (req, res) => {
     res.status(500).json({ error: "Failed to send email" });
   }
 });
-*/
 
 // Listen on the port provided by Heroku
 const PORT = process.env.PORT || 3000;
