@@ -5,7 +5,7 @@ import pkg from "pg"; // Import the default export from pg
 const { Pool } = pkg;
 import cron from "node-cron";
 import nodemailer from "nodemailer";
-import { Configuration, OpenAIApi } from "openai";
+// import { Configuration, OpenAIApi } from "openai";  // <-- AI functionality commented out
 import { fileURLToPath } from "url";
 import { dirname } from "path";
 
@@ -142,6 +142,9 @@ function sendReminder(ticket) {
   });
 }
 
+/* 
+// AI functionality is commented out below
+
 // Initialize OpenAI using Configuration and OpenAIApi
 const configuration = new Configuration({
   apiKey: process.env.OPENAI_API_KEY,
@@ -180,7 +183,7 @@ Return only the JSON.
 
     // Call OpenAI's chat completions API
     const completion = await openai.createChatCompletion({
-      model: "gpt-4", // Adjust the model name as needed
+      model: "gpt-4",
       messages: [{ role: "user", content: prompt }],
       max_tokens: 150,
       temperature: 0.7,
@@ -209,8 +212,10 @@ Return only the JSON.
     res.status(500).json({ error: "Failed to process AI request" });
   }
 });
+*/
 
-// /api/send-email Endpoint
+/*
+// /api/send-email Endpoint (remains unchanged)
 app.post("/api/send-email", async (req, res) => {
   try {
     const { to, subject, text } = req.body;
@@ -234,6 +239,7 @@ app.post("/api/send-email", async (req, res) => {
     res.status(500).json({ error: "Failed to send email" });
   }
 });
+*/
 
 // Listen on the port provided by Heroku
 const PORT = process.env.PORT || 3000;
