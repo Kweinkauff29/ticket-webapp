@@ -28,7 +28,6 @@ app.use(express.static(path.join(__dirname, "public")));
 // Initialize Heroku PostgreSQL connection pool using DATABASE_URL
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  // Heroku Postgres requires SSL with this setting
   ssl: {
     rejectUnauthorized: false,
   },
@@ -81,6 +80,19 @@ app.post("/api/create-ticket", async (req, res) => {
       [description, summary, ticketNumber, createdAt, reminderTime, email, phone]
     );
     res.json(result.rows[0]);
+  } catch (err) {
+    console.error("Database error:", err);
+    res.status(500).json({ error: "Database error" });
+  }
+});
+
+// New GET endpoint to retrieve all tickets
+app.get("/api/tickets", async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT * FROM tickets ORDER BY createdAt DESC`
+    );
+    res.json(result.rows);
   } catch (err) {
     console.error("Database error:", err);
     res.status(500).json({ error: "Database error" });
