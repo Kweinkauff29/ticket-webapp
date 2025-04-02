@@ -6,10 +6,11 @@ const cron = require("node-cron");
 const nodemailer = require("nodemailer");
 
 import { Configuration, OpenAIApi } from "openai";
+
 const configuration = new Configuration({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-const openai = new OpenAIApi(configuration);
+    apiKey: process.env.OPENAI_API_KEY,
+  });
+  const openai = new OpenAIApi(configuration);
 
 const app = express();
 app.use(bodyParser.json());
