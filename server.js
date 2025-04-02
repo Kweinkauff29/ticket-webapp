@@ -5,7 +5,7 @@ import pkg from "pg"; // Import the default export from pg
 const { Pool } = pkg;
 import cron from "node-cron";
 import nodemailer from "nodemailer";
-// import { Configuration, OpenAIApi } from "openai";  <-- Commented out AI integration
+// import { Configuration, OpenAIApi } from "openai";  // Commented out AI integration
 import { fileURLToPath } from "url";
 import { dirname } from "path";
 
@@ -25,7 +25,7 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false },
 });
 
-// Create the tickets table if it doesn't exist
+// Create the tickets table if it doesn't exist and add an "assignee" column
 pool.query(
   `CREATE TABLE IF NOT EXISTS tickets (
     id SERIAL PRIMARY KEY,
@@ -36,7 +36,8 @@ pool.query(
     reminderTime BIGINT,
     completed INTEGER DEFAULT 0,
     email TEXT,
-    phone TEXT
+    phone TEXT,
+    assignee TEXT DEFAULT 'Kevin'
   )`,
   (err) => {
     if (err) {
@@ -58,18 +59,20 @@ function generateTicketNumber() {
 
 // Endpoint to create a ticket
 app.post("/api/create-ticket", async (req, res) => {
-  const { description, email, phone, noAI } = req.body;
+  const { description, email, phone } = req.body;
   const summary = summarizeText(description);
   const ticketNumber = generateTicketNumber();
   const createdAt = Date.now();
   const reminderTime = createdAt + 2 * 24 * 60 * 60 * 1000; // 2 days later
+  // Default assignee is set to "Kevin" (could be made dynamic later)
+  const assignee = "Kevin";
 
   try {
     const result = await pool.query(
-      `INSERT INTO tickets (description, summary, ticketNumber, createdAt, reminderTime, email, phone)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `INSERT INTO tickets (description, summary, ticketNumber, createdAt, reminderTime, email, phone, assignee)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        RETURNING *`,
-      [description, summary, ticketNumber, createdAt, reminderTime, email, phone]
+      [description, summary, ticketNumber, createdAt, reminderTime, email, phone, assignee]
     );
     res.json(result.rows[0]);
   } catch (err) {
@@ -78,12 +81,10 @@ app.post("/api/create-ticket", async (req, res) => {
   }
 });
 
-// GET endpoint to retrieve all tickets
+// GET endpoint to retrieve all tickets (active & completed)
 app.get("/api/tickets", async (req, res) => {
   try {
-    const result = await pool.query(
-      `SELECT * FROM tickets ORDER BY createdAt DESC`
-    );
+    const result = await pool.query(`SELECT * FROM tickets ORDER BY createdAt DESC`);
     res.json(result.rows);
   } catch (err) {
     console.error("Database error:", err);
@@ -142,72 +143,10 @@ function sendReminder(ticket) {
   });
 }
 
-// --------------------
-// /api/ai-process Endpoint - Commented out for now
-// --------------------
-// app.post("/api/ai-process", async (req, res) => {
-//   try {
-//     const { description, email, phone, noAI } = req.body;
+// AI-related endpoint is commented out
+// app.post("/api/ai-process", async (req, res) => { ... });
 
-//     // If noAI flag is true, bypass AI processing and return default values
-//     if (noAI) {
-//       return res.json({
-//         condensed: "AI processing skipped.",
-//         inProgressSubject: "Ticket In-Progress",
-//         inProgressText: "Please update your ticket manually.",
-//       });
-//     }
-
-//     // Build a prompt for the AI
-//     const prompt = `
-// You are an AI assistant that condenses a ticket description and extracts any contact information, then creates an "in-progress" email subject and message for follow-up.
-
-// Ticket Description: ${description}
-// Contact Email: ${email || "None"}
-// Contact Phone: ${phone || "None"}
-
-// Provide the output in JSON format with these keys:
-// - "condensed": A condensed summary of the ticket that prioritizes contact information.
-// - "inProgressSubject": A suggested subject line for an in-progress update.
-// - "inProgressText": A suggested message text for an in-progress update.
-
-// Return only the JSON.
-//     `;
-
-//     // Call OpenAI's chat completions API
-//     const completion = await openai.createChatCompletion({
-//       model: "gpt-4",
-//       messages: [{ role: "user", content: prompt }],
-//       max_tokens: 150,
-//       temperature: 0.7,
-//     });
-
-//     // Get the response text from OpenAI
-//     const responseText = completion.data.choices[0].message.content;
-
-//     // Try to parse the JSON response
-//     let aiData;
-//     try {
-//       aiData = JSON.parse(responseText);
-//     } catch (err) {
-//       console.error("Error parsing AI response:", err);
-//       aiData = {
-//         condensed: "Condensed summary unavailable.",
-//         inProgressSubject: "Ticket In-Progress",
-//         inProgressText: "We are working on your ticket.",
-//       };
-//     }
-
-//     res.json(aiData);
-//   } catch (error) {
-//     console.error("Error in /api/ai-process:", error);
-//     res.status(500).json({ error: "Failed to process AI request" });
-//   }
-// });
-
-// --------------------
 // /api/send-email Endpoint
-// --------------------
 app.post("/api/send-email", async (req, res) => {
   try {
     const { to, subject, text } = req.body;
