@@ -4,7 +4,6 @@ const path = require("path");
 const sqlite3 = require("sqlite3").verbose();  // if using SQLite
 const cron = require("node-cron");
 const nodemailer = require("nodemailer");
-const { Configuration, OpenAIApi } = require("openai");
 
 const { Configuration, OpenAIApi } = require("openai");
 const configuration = new Configuration({
