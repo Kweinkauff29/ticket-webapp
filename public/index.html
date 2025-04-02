@@ -17,7 +17,7 @@
     /* Container to center all content */
     .container {
       width: 100%;
-      max-width: 600px;
+      max-width: 800px;
       padding: 20px;
     }
 
@@ -65,19 +65,54 @@
       background-color: #0056b3;
     }
 
-    /* Ticket list items */
-    ul {
-      list-style-type: none;
-      padding: 0;
+    /* Collapsible Active Tickets Section */
+    .active-tickets-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
     }
+    .person-box {
+      flex: 1 1 45%;
+      background-color: #fefefe;
+      border-radius: 8px;
+      padding: 10px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      position: relative;
+    }
+    .person-box header {
+      font-weight: bold;
+      padding: 5px 10px;
+      cursor: pointer;
+      border-radius: 4px;
+      margin-bottom: 5px;
+      color: #fff;
+    }
+    /* Color coordination for each person */
+    .kevin header { background-color: #007bff; }
+    .jenna header { background-color: #28a745; }
+    .erica header { background-color: #ffc107; }
+    .katie header { background-color: #dc3545; }
+    .meighan header { background-color: #6f42c1; }
+
+    .person-box .ticket-list {
+      min-height: 50px;
+      border: 2px dashed transparent;
+      transition: background-color 0.3s;
+    }
+    .person-box .ticket-list.drag-over {
+      background-color: #e0e0e0;
+    }
+
+    /* Ticket item styles */
     .ticket {
       background-color: #e2f7e2;
       border-radius: 6px;
       padding: 10px;
       margin-bottom: 10px;
       display: flex;
-      align-items: center;
       justify-content: space-between;
+      align-items: center;
+      cursor: move;
     }
     .ticket.completed {
       background-color: #d3d3d3;
@@ -115,7 +150,39 @@
     <!-- Active Tickets Section -->
     <div class="box" id="active-tickets-box">
       <h2>Active Tickets</h2>
-      <ul id="ticketList"></ul>
+      <div class="active-tickets-container">
+        <!-- Kevin Box -->
+        <div class="person-box kevin" data-person="Kevin">
+          <header onclick="toggleBox(this)">Kevin</header>
+          <div class="ticket-list" ondragover="allowDrop(event)" ondrop="drop(event, 'Kevin')">
+            <!-- Tickets for Kevin go here -->
+          </div>
+        </div>
+        <!-- Jenna Box -->
+        <div class="person-box jenna" data-person="Jenna">
+          <header onclick="toggleBox(this)">Jenna</header>
+          <div class="ticket-list" ondragover="allowDrop(event)" ondrop="drop(event, 'Jenna')">
+          </div>
+        </div>
+        <!-- Erica Box -->
+        <div class="person-box erica" data-person="Erica">
+          <header onclick="toggleBox(this)">Erica</header>
+          <div class="ticket-list" ondragover="allowDrop(event)" ondrop="drop(event, 'Erica')">
+          </div>
+        </div>
+        <!-- Katie Box -->
+        <div class="person-box katie" data-person="Katie">
+          <header onclick="toggleBox(this)">Katie</header>
+          <div class="ticket-list" ondragover="allowDrop(event)" ondrop="drop(event, 'Katie')">
+          </div>
+        </div>
+        <!-- Meighan Box -->
+        <div class="person-box meighan" data-person="Meighan">
+          <header onclick="toggleBox(this)">Meighan</header>
+          <div class="ticket-list" ondragover="allowDrop(event)" ondrop="drop(event, 'Meighan')">
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Completed Tickets Section -->
