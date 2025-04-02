@@ -3,23 +3,127 @@
 <head>
   <title>Ticket Webapp</title>
   <style>
-    body { font-family: sans-serif; }
-    .ticket { margin-bottom: 10px; }
-    .completed { text-decoration: line-through; }
+    /* Global Styles */
+    body {
+      background-color: #f4f4f4;
+      margin: 0;
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    /* Container to center all content */
+    .container {
+      width: 100%;
+      max-width: 600px;
+      padding: 20px;
+    }
+
+    /* Styled boxes for sections */
+    .box {
+      background-color: #fff;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    h1, h2 {
+      text-align: center;
+      margin-bottom: 15px;
+    }
+
+    /* Form Styles */
+    form label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    form input,
+    form textarea {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 15px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    form button {
+      display: block;
+      width: 100%;
+      padding: 10px;
+      background-color: #007bff;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    form button:hover {
+      background-color: #0056b3;
+    }
+
+    /* Ticket list items */
+    ul {
+      list-style-type: none;
+      padding: 0;
+    }
+    .ticket {
+      background-color: #e2f7e2;
+      border-radius: 6px;
+      padding: 10px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .ticket.completed {
+      background-color: #d3d3d3;
+      text-decoration: line-through;
+    }
+    .ticket div.details {
+      flex-grow: 1;
+    }
+    .ticket small {
+      display: block;
+      margin-top: 3px;
+      color: #555;
+    }
   </style>
 </head>
 <body>
-  <h1>Create a Ticket</h1>
-  <form id="ticketForm">
-    <textarea id="ticketDescription" placeholder="Describe your task here" required></textarea><br>
-    <button type="submit">Create Ticket</button>
-  </form>
+  <div class="container">
+    <!-- Create Ticket Section -->
+    <div class="box" id="create-ticket-box">
+      <h1>Create a Ticket</h1>
+      <form id="ticketForm">
+        <label for="ticketDescription">Task Description:</label>
+        <textarea id="ticketDescription" placeholder="Describe your task here" required></textarea>
+        
+        <label for="ticketEmail">Email (Optional):</label>
+        <input type="email" id="ticketEmail" placeholder="Enter your email">
 
-  <h2>Active Tickets</h2>
-  <ul id="ticketList"></ul>
+        <label for="ticketPhone">Phone (Optional):</label>
+        <input type="tel" id="ticketPhone" placeholder="Enter your phone number">
 
-  <h2>Completed Tickets</h2>
-  <ul id="completedTicketList"></ul>
+        <button type="submit">Create Ticket</button>
+      </form>
+    </div>
+
+    <!-- Active Tickets Section -->
+    <div class="box" id="active-tickets-box">
+      <h2>Active Tickets</h2>
+      <ul id="ticketList"></ul>
+    </div>
+
+    <!-- Completed Tickets Section -->
+    <div class="box" id="completed-tickets-box">
+      <h2>Completed Tickets</h2>
+      <ul id="completedTicketList"></ul>
+    </div>
+  </div>
 
   <script src="main.js"></script>
 </body>

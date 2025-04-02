@@ -34,30 +34,32 @@ function generateTicketNumber() {
   return "TICKET-" + Date.now();
 }
 
-// API endpoint to create a ticket
 app.post("/api/create-ticket", (req, res) => {
-  const { description } = req.body;
-  const summary = summarizeText(description);
-  const ticketNumber = generateTicketNumber();
-  const createdAt = Date.now();
-  const reminderTime = createdAt + 2 * 24 * 60 * 60 * 1000; // 2 days later
-
-  const stmt = db.prepare(`INSERT INTO tickets (description, summary, ticketNumber, createdAt, reminderTime)
-                             VALUES (?, ?, ?, ?, ?)`);
-  stmt.run(description, summary, ticketNumber, createdAt, reminderTime, function (err) {
-    if (err) return res.status(500).json({ error: "Database error" });
-    res.json({
-      id: this.lastID,
-      description,
-      summary,
-      ticketNumber,
-      createdAt,
-      reminderTime,
-      completed: 0
+    const { description, email, phone } = req.body; // Capture additional fields
+    const summary = summarizeText(description);
+    const ticketNumber = generateTicketNumber();
+    const createdAt = Date.now();
+    const reminderTime = createdAt + 2 * 24 * 60 * 60 * 1000; // 2 days later
+  
+    const stmt = db.prepare(`INSERT INTO tickets (description, summary, ticketNumber, createdAt, reminderTime)
+                               VALUES (?, ?, ?, ?, ?)`);
+    stmt.run(description, summary, ticketNumber, createdAt, reminderTime, function (err) {
+      if (err) return res.status(500).json({ error: "Database error" });
+      // Include email and phone in the returned object if needed.
+      res.json({
+        id: this.lastID,
+        description,
+        summary,
+        ticketNumber,
+        createdAt,
+        reminderTime,
+        completed: 0,
+        email,   // optional field
+        phone    // optional field
+      });
     });
+    stmt.finalize();
   });
-  stmt.finalize();
-});
 
 // API endpoint to mark a ticket as completed
 app.post("/api/complete-ticket/:id", (req, res) => {
