@@ -8,8 +8,6 @@ import { Configuration, OpenAIApi } from "openai";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
 
-import { Configuration, OpenAIApi } from "openai";
-
 const configuration = new Configuration({
     apiKey: process.env.OPENAI_API_KEY,
   });
