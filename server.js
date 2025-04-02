@@ -1,23 +1,18 @@
 import express from "express";
 import bodyParser from "body-parser";
 import path from "path";
-import pkg from "pg"; // Use the default export from pg
+import pkg from "pg"; // Import default export from pg
 const { Pool } = pkg;
 import cron from "node-cron";
 import nodemailer from "nodemailer";
-import { Configuration, OpenAIApi } from "openai";
+// Instead of named imports, import the default export from "openai"
+import OpenAI from "openai";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
 
 // Define __filename and __dirname for ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-
-// Initialize OpenAI
-const configuration = new Configuration({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-const openai = new OpenAIApi(configuration);
 
 const app = express();
 app.use(bodyParser.json());
@@ -66,7 +61,7 @@ function generateTicketNumber() {
 
 // Endpoint to create a ticket
 app.post("/api/create-ticket", async (req, res) => {
-  const { description, email, phone, noAI } = req.body; // Capture additional fields including the noAI flag
+  const { description, email, phone, noAI } = req.body;
   const summary = summarizeText(description);
   const ticketNumber = generateTicketNumber();
   const createdAt = Date.now();
@@ -150,7 +145,13 @@ function sendReminder(ticket) {
   });
 }
 
-// /api/ai-process Endpoint
+// Create a new instance of the OpenAI client using the new syntax.
+// Note: Use your environment variable here.
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+// /api/ai-process Endpoint using the new OpenAI client
 app.post("/api/ai-process", async (req, res) => {
   try {
     const { description, email, phone, noAI } = req.body;
@@ -180,17 +181,18 @@ Provide the output in JSON format with these keys:
 Return only the JSON.
     `;
 
-    // Call OpenAI's API using Chat Completion (GPT-4)
-    const completion = await openai.createChatCompletion({
-      model: "gpt-4",
+    // Call OpenAI's chat completions API using the new client
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini", // using the model from your snippet
+      store: true,
       messages: [{ role: "user", content: prompt }],
       max_tokens: 150,
       temperature: 0.7,
     });
 
     // Get the response text from OpenAI
-    const responseText = completion.data.choices[0].message.content;
-
+    const responseText = completion.choices[0].message;
+    
     // Try to parse the JSON response
     let aiData;
     try {
@@ -218,7 +220,7 @@ app.post("/api/send-email", async (req, res) => {
     const { to, subject, text } = req.body;
     const mailOptions = {
       from: process.env.EMAIL_USER || "your.email@gmail.com",
-      to: to, // recipient email address
+      to: to,
       subject: subject,
       text: text,
     };
