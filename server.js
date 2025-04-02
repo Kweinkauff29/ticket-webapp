@@ -1,9 +1,12 @@
-const express = require("express");
-const bodyParser = require("body-parser");
-const path = require("path");
-const sqlite3 = require("sqlite3").verbose();  // if using SQLite
-const cron = require("node-cron");
-const nodemailer = require("nodemailer");
+import express from "express";
+import bodyParser from "body-parser";
+import path from "path";
+import sqlite3 from "sqlite3";
+import cron from "node-cron";
+import nodemailer from "nodemailer";
+import { Configuration, OpenAIApi } from "openai";
+import { fileURLToPath } from "url";
+import { dirname } from "path";
 
 import { Configuration, OpenAIApi } from "openai";
 
