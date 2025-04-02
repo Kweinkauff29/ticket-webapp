@@ -25,7 +25,8 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false },
 });
 
-// Create the tickets table if it doesn't exist, adding an "assignee" column
+// Create the tickets table if it doesn't exist (make sure your database schema is updated)
+// If your table already exists, run an ALTER TABLE command to add the assignee column.
 pool.query(
   `CREATE TABLE IF NOT EXISTS tickets (
     id SERIAL PRIMARY KEY,
@@ -85,7 +86,9 @@ app.post("/api/create-ticket", async (req, res) => {
 // GET endpoint to retrieve all tickets
 app.get("/api/tickets", async (req, res) => {
   try {
-    const result = await pool.query(`SELECT * FROM tickets ORDER BY createdAt DESC`);
+    const result = await pool.query(
+      `SELECT * FROM tickets ORDER BY createdAt DESC`
+    );
     res.json(result.rows);
   } catch (err) {
     console.error("Database error:", err);
@@ -145,7 +148,7 @@ function sendReminder(ticket) {
 }
 
 // --------------------
-// AI-related endpoints are commented out for now
+// AI endpoints are commented out for now
 // --------------------
 
 // /api/send-email Endpoint
