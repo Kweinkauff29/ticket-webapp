@@ -5,7 +5,7 @@ import pkg from "pg"; // Import the default export from pg
 const { Pool } = pkg;
 import cron from "node-cron";
 import nodemailer from "nodemailer";
-// import { Configuration, OpenAIApi } from "openai";  // Commented out AI integration
+// import { Configuration, OpenAIApi } from "openai";  // AI integration commented out
 import { fileURLToPath } from "url";
 import { dirname } from "path";
 
@@ -25,7 +25,7 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false },
 });
 
-// Create the tickets table if it doesn't exist and add an "assignee" column
+// Create the tickets table if it doesn't exist, adding an "assignee" column
 pool.query(
   `CREATE TABLE IF NOT EXISTS tickets (
     id SERIAL PRIMARY KEY,
@@ -59,20 +59,21 @@ function generateTicketNumber() {
 
 // Endpoint to create a ticket
 app.post("/api/create-ticket", async (req, res) => {
-  const { description, email, phone } = req.body;
+  const { description, email, phone, assignee } = req.body;
   const summary = summarizeText(description);
   const ticketNumber = generateTicketNumber();
   const createdAt = Date.now();
   const reminderTime = createdAt + 2 * 24 * 60 * 60 * 1000; // 2 days later
-  // Default assignee is set to "Kevin" (could be made dynamic later)
-  const assignee = "Kevin";
+
+  // Use the provided assignee or default to "Kevin"
+  const ticketAssignee = assignee || "Kevin";
 
   try {
     const result = await pool.query(
       `INSERT INTO tickets (description, summary, ticketNumber, createdAt, reminderTime, email, phone, assignee)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        RETURNING *`,
-      [description, summary, ticketNumber, createdAt, reminderTime, email, phone, assignee]
+      [description, summary, ticketNumber, createdAt, reminderTime, email, phone, ticketAssignee]
     );
     res.json(result.rows[0]);
   } catch (err) {
@@ -81,7 +82,7 @@ app.post("/api/create-ticket", async (req, res) => {
   }
 });
 
-// GET endpoint to retrieve all tickets (active & completed)
+// GET endpoint to retrieve all tickets
 app.get("/api/tickets", async (req, res) => {
   try {
     const result = await pool.query(`SELECT * FROM tickets ORDER BY createdAt DESC`);
@@ -141,10 +142,11 @@ function sendReminder(ticket) {
     if (error) console.error("Error sending reminder:", error);
     else console.log("Reminder sent:", info.response);
   });
-}
+});
 
-// AI-related endpoint is commented out
-// app.post("/api/ai-process", async (req, res) => { ... });
+// --------------------
+// AI-related endpoints are commented out for now
+// --------------------
 
 // /api/send-email Endpoint
 app.post("/api/send-email", async (req, res) => {
